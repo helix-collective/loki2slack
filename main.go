@@ -2,16 +2,16 @@ package main
 
 import (
 	"fmt"
-	"onederful/loki_fwder/internal/tail"
-	"onederful/loki_fwder/internal/types"
 
+	"github.com/helix-collective/loki2slack/internal/tail"
+	"github.com/helix-collective/loki2slack/internal/types"
 	"github.com/jpillora/opts"
 )
 
 func main() {
 	rflg := &types.Root{}
 	op := opts.New(rflg).
-		Name("loki_fwder").
+		Name("loki2slack").
 		EmbedGlobalFlagSet().
 		Complete().
 		AddCommand(opts.New(&versionCmd{}).Name("version")).

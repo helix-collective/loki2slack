@@ -1,4 +1,4 @@
-module onederful/loki_fwder
+module github.com/helix-collective/loki2slack
 
 go 1.17
 
