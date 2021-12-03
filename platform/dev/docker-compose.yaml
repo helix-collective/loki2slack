@@ -1,0 +1,23 @@
+services:
+
+  loki2slack:
+    image: helixta/loki2slack
+    volumes:
+      - ./loki2slack.cfg:/config/loki2slack.cfg
+    command: --logtostderr tail -c /config/loki2slack.cfg
+
+  loki:
+    image: grafana/loki:2.2.1
+    ports:
+      - "3100:3100"
+      - "9096:9096"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+
+  grafana:
+    image: grafana/grafana:8.0.4
+    ports:
+      - "3000:3000"
+  
+  # TODO create a service which logs to loki
