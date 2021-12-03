@@ -25,6 +25,19 @@ builds:
   ldflags:
   - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}}
 
+dockers:
+  -
+    # GOOS of the built binaries/packages that should be used.
+    goos: linux
+    # GOARCH of the built binaries/packages that should be used.
+    goarch: amd64
+    # GOARM of the built binaries/packages that should be used.
+    goarm: ''
+    image_templates:
+    - "ghcr.io/helix-collective/loki2slack:{{ .Tag }}"
+    - "ghcr.io/helix-collective/loki2slack:latest"
+    skip_push: false
+
 archives:
   - replacements:
       darwin: Darwin

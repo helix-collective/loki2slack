@@ -1,7 +1,7 @@
 services:
 
   loki2slack:
-    image: helixta/loki2slack
+    image: ghcr.io/helix-collective
     volumes:
       - ./loki2slack.cfg:/config/loki2slack.cfg
     command: --logtostderr tail -c /config/loki2slack.cfg
