@@ -1,7 +1,7 @@
 project_name: loki2slack
 release:
   github:
-    owner: wxhelix-collectiveio 
+    owner: helix-collectiveio 
     name: loki2slack
   name_template: '{{.Tag}}'
   # disable: true
