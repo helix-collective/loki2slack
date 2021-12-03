@@ -36,17 +36,21 @@ These can be see when running tail with debug (`loki2slack tail --debug ...`).
 - include an example.
 - make this easier.
 
-## Build
+## Build & Release
 
+### Using Multipart Docker File
 ``` bash
-docker build --tag helixta/loki2slack:latest .
+docker build --file Dockerfile.multipart --tag helixta/loki2slack:latest .
 docker tag helixta/loki2slack:latest helixta/loki2slack:`git describe`
-```
-## Release
-
-``` bash
 docker push helixta/loki2slack:latest
 docker push helixta/loki2slack:`git describe`
+```
+
+### Using `goreleaser`
+
+Export a `GITHUB_TOKEN` as an env var.
+```
+goreleaser
 ```
 
 ## Deploy
