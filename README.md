@@ -50,6 +50,8 @@ docker push helixta/loki2slack:`git describe`
 
 Export a `GITHUB_TOKEN` as an env var.
 ```
+# must be a personal access token with package write permission
+echo $GITHUB_TOKEN | docker login ghcr.io -u gmhta --password-stdin
 goreleaser
 ```
 
