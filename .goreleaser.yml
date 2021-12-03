@@ -36,7 +36,7 @@ dockers:
     image_templates:
     - "ghcr.io/helixta/loki2slack:{{ .Tag }}"
     - "ghcr.io/helixta/loki2slack:latest"
-    skip_push: true
+    skip_push: false
 
 archives:
   - replacements:
