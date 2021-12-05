@@ -34,8 +34,8 @@ dockers:
     # GOARM of the built binaries/packages that should be used.
     goarm: ''
     image_templates:
-    - "ghcr.io/helixta/loki2slack:{{ .Tag }}"
-    - "ghcr.io/helixta/loki2slack:latest"
+    - "ghcr.io/helix-collective/loki2slack:{{ .Tag }}"
+    - "ghcr.io/helix-collective/loki2slack:latest"
     skip_push: false
 
 archives:
