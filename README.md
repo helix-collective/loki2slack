@@ -36,22 +36,35 @@ These can be see when running tail with debug (`loki2slack tail --debug ...`).
 - include an example.
 - make this easier.
 
-## Build & Release
+## Build
 
 ### Using Multipart Docker File
 ``` bash
-docker build --file Dockerfile.multipart --tag helixta/loki2slack:latest .
-docker tag helixta/loki2slack:latest helixta/loki2slack:`git describe`
-docker push helixta/loki2slack:latest
-docker push helixta/loki2slack:`git describe`
+docker build --file Dockerfile.multipart --tag ghcr.io/helix-collective:latest .
 ```
 
-### Using `goreleaser`
+### Docker Image Using `goreleaser`
+
+```
+goreleaser --skip-publish --skip-validate --rm-dist
+```
+
+### Local Development
+
+Simply do a local `go build`, when running `loki2slack` use `--addr localhost:9096` or in the `loki2slack.cfg` set the `Addr` to `localhost:9096`.
+
+## Release
+
+### CI
+
+Push a tag.
+
+### Locally Using `goreleaser`
 
 Export a `GITHUB_TOKEN` as an env var.
 ```
 # must be a personal access token with package write permission
-echo $GITHUB_TOKEN | docker login ghcr.io -u gmhta --password-stdin
+echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin
 goreleaser
 ```
 
@@ -67,8 +80,4 @@ server:
 
 Entries in the `loki2slack.cfg` file much match your deployment setup.
 
-## CI
-
-TODO:
-- goreleaser
-- github actions
+Note: it might be easier to run multiple contains each with simple queries than construct one large query.
