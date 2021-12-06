@@ -43,7 +43,7 @@ dockers:
     - "--label=org.opencontainers.image.title={{.ProjectName}}"
     - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     - "--label=org.opencontainers.image.version={{.Version}}"
-    - "--label=org.opencontainers.image.source=&quot;https://github.com/helix-collective/loki2slack&quot;"
+    - "--label=org.opencontainers.image.source=https://github.com/helix-collective/loki2slack"
 
 archives:
   - replacements:
