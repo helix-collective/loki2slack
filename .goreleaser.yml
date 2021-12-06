@@ -37,6 +37,13 @@ dockers:
     - "ghcr.io/helix-collective/loki2slack:{{ .Tag }}"
     - "ghcr.io/helix-collective/loki2slack:latest"
     skip_push: false
+    # Template of the docker build flags.
+    build_flag_templates:
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source=https://github.com/helix-collective/loki2slack"
 
 archives:
   - replacements:

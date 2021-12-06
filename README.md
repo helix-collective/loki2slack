@@ -6,8 +6,8 @@ A Loki to Slack message forwarder.
 
 [![Release](https://img.shields.io/github/release/helix-collective/loki2slack.svg?style=for-the-badge)](https://github.com/helix-collective/loki2slack/releases/latest)
 [![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge)](/LICENSE.md)
+[![Powered By: Opts CLI Library](https://img.shields.io/badge/powered%20by-opts_cli-green.svg?style=for-the-badge)](https://github.com/jpillora/opts)
 [![Powered By: GoReleaser](https://img.shields.io/badge/powered%20by-goreleaser-green.svg?style=for-the-badge)](https://github.com/goreleaser)
-[![Powered By: Opts CLI Library](https://img.shields.io/badge/powered%20by-goreleaser-green.svg?style=for-the-badge)](https://github.com/jpillora/opts)
 
 ## Quick Start
 
@@ -22,26 +22,43 @@ Now is a separate terminal
 ./platform/dev/loki_post.sh
 ```
 
+## Slack App
+
 To post to Slack, configure the `platform/dev/loki2slack.cfg` with `SlackToken` and `SlackChannelId`, restart `loki2slack` container.
 
 Configure [Local Grafana](http://localhost:3000/?orgId=1) with `loki` as a data source named `Loki`.
 
 Notes:
-- The slack token must have `chat:write` scope.
-  - So far only managed this with user token (bot token should work).
+- The slack token must have `channels:join,chat:write,files:write` scopes.
 - For links in the eventual slack message to open in the correct place the data source name must match in the `loki2slack.cfg` file.
 
-## Post to Slack Directly
+A minimum Slack App manifest needed by this app is;
 
-Can be useful to shortcut things, remove Loki for the equation and post to Slack directly.
-To do this use `loki2slack post -c <config_file> --sample-file <example>`.
-The example file must have a least two line.
-The first is the Loki link and the second the log line.
-These can be see when running tail with debug (`loki2slack tail --debug ...`).
+```
+_metadata:
+  major_version: 1
+  minor_version: 1
+display_information:
+  name: APPNAME
+features:
+  bot_user:
+    display_name: DIPLAYNAME
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - chat:write
+      - files:write
+      - channels:join
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+```
 
-**TODO**
-- include an example.
-- make this easier.
+## Experimenting with Slack
+
+see [docs/slack_posts.md](docs/slack_posts.md)
 
 ## Build
 

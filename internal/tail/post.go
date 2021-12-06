@@ -31,6 +31,14 @@ func NewPost(rt *types.Root) interface{} {
 func (in *postOpts) Run() error {
 	types.Config(in.Cfg, in.DumpConfig, in)
 
+	err := joinChannel(in.SlackChannelId, in.SlackToken)
+	if err == nil {
+		glog.Info("joinChannel ok")
+	} else {
+		glog.Warningf("joinChannel error %v", err)
+		return err
+	}
+
 	fd, err := os.Open(in.SampleFile)
 	if err != nil {
 		glog.Fatalf("error opening file %s %v", in.SampleFile, err)
@@ -43,12 +51,24 @@ func (in *postOpts) Run() error {
 	lokiLink := scanner.Text()
 	scanner.Scan()
 	lokiLine := scanner.Text()
-	return postMsg(
-		`"testing"`,
-		lokiLink,
-		lokiLine,
-		in.Debug,
-		in.SlackChannelId,
-		in.SlackToken,
-	)
+	ts, err := uploadFile(lokiLine, in.Debug, in.SlackChannelId, in.SlackToken)
+	if err != nil {
+		glog.Warningf("upload error %v", err)
+		return nil
+	}
+	updateMsg(in.SlackChannelId, in.SlackToken, ts, lokiLink, []string{
+		"A: 1",
+		"B: 2",
+		"C: 3",
+	})
+	_ = lokiLink
+	return nil
+	// return postMsg(
+	// 	`"testing"`,
+	// 	lokiLink,
+	// 	lokiLine,
+	// 	in.Debug,
+	// 	in.SlackChannelId,
+	// 	in.SlackToken,
+	// )
 }
