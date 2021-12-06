@@ -2,6 +2,13 @@
 
 A Loki to Slack message forwarder.
 
+## Badges
+
+[![Release](https://img.shields.io/github/release/helix-collective/loki2slack.svg?style=for-the-badge)](https://github.com/helix-collective/loki2slack/releases/latest)
+[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=for-the-badge)](/LICENSE.md)
+[![Powered By: GoReleaser](https://img.shields.io/badge/powered%20by-goreleaser-green.svg?style=for-the-badge)](https://github.com/goreleaser)
+[![Powered By: Opts CLI Library](https://img.shields.io/badge/powered%20by-goreleaser-green.svg?style=for-the-badge)](https://github.com/jpillora/opts)
+
 ## Quick Start
 
 ```
