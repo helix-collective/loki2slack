@@ -52,6 +52,14 @@ func (in *tailOpts) Run() error {
 }
 
 func (in *tailOpts) tailLoki() error {
+	go func() {
+		err := joinChannel(in.SlackChannelId, in.SlackToken)
+		if err == nil {
+			glog.Info("joinChannel ok")
+		} else {
+			glog.Warningf("joinChannel error %v", err)
+		}
+	}()
 	// connection to Loki
 	conn, err := grpc.Dial(in.Addr, grpc.WithInsecure())
 	if err != nil {
@@ -84,9 +92,13 @@ func (in *tailOpts) tailLoki() error {
 		plabels := tresp.Stream.Labels
 		plabels = plabels[1 : len(plabels)-1]
 		pl := strings.Split(plabels, ",")
+		labels := make([]string, 0)
 		env := ""
 		for _, p := range pl {
 			p = strings.Trim(p, " ")
+			if len(p) < 80 {
+				labels = append(labels, p)
+			}
 			if strings.HasPrefix(p, "env=\"") {
 				env = p
 				break
@@ -96,11 +108,16 @@ func (in *tailOpts) tailLoki() error {
 			glog.Warningf("didn't find env in %s", pl)
 			continue
 		}
-		envA := strings.Split(env, "=")
+		// envA := strings.Split(env, "=")
 		env = strings.ReplaceAll(env, `"`, `\"`)
 		for _, entry := range tresp.Stream.Entries {
 			unixT := entry.Timestamp.UnixMilli()
-			left := fmt.Sprintf(`["%[2]d","%[2]d","%[3]s",{"expr":"{%[4]s}"}]`, in.GrafanaUrl, unixT, in.LokiDataSource, env)
+			left := fmt.Sprintf(`["%[2]d","%[2]d","%[3]s",{"expr":"{%[4]s}"}]`,
+				in.GrafanaUrl,
+				unixT,
+				in.LokiDataSource,
+				env,
+			)
 			lokiLink := fmt.Sprintf("%[1]s/explore?left=%[2]s", in.GrafanaUrl, url.QueryEscape(left))
 			line := entry.Line
 			lmap := make(map[string]interface{})
@@ -115,16 +132,26 @@ func (in *tailOpts) tailLoki() error {
 					line = string(ba)
 				}
 			}
-			// replacer := strings.NewReplacer(`\\n\\t`, "\n\t", `\n\t`, "\n\t", `\n`, "\n")
-			// line = replacer.Replace(line)
-			postMsg(
-				envA[1],
-				fmt.Sprintf("<%s|Grafana Link>", lokiLink),
-				line,
-				in.Debug,
+			ts, err := uploadFile(line, in.Debug, in.SlackChannelId, in.SlackToken)
+			if err != nil {
+				glog.Warningf("upload error %v", err)
+				continue
+			}
+			updateMsg(
 				in.SlackChannelId,
 				in.SlackToken,
+				ts,
+				fmt.Sprintf("<%s|Grafana Link>", lokiLink),
+				labels,
 			)
+			// postMsg(
+			// 	envA[1],
+			// 	fmt.Sprintf("<%s|Grafana Link>", lokiLink),
+			// 	line,
+			// 	in.Debug,
+			// 	in.SlackChannelId,
+			// 	in.SlackToken,
+			// )
 		}
 	}
 	// http://localhost:3001/explore?left=["1638359982286","1638360882286","Loki",{"expr":"{env=\"devel\"}"}]&orgId=1

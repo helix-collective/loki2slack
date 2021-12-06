@@ -9,6 +9,47 @@ import (
 	"github.com/slack-go/slack"
 )
 
+func joinChannel(SlackChannelId string, SlackToken string) error {
+	api := slack.New(SlackToken)
+	_, _, _, err := api.JoinConversation(SlackChannelId)
+	return err
+}
+
+func uploadFile(lokiLine string, Debug bool, SlackChannelId string, SlackToken string) (string, error) {
+	api := slack.New(SlackToken)
+	lokiLine = strings.ReplaceAll(lokiLine, `\n`, "\n")
+	lokiLine = strings.ReplaceAll(lokiLine, `\t`, "\t")
+	lokiLine = strings.ReplaceAll(lokiLine, `\"`, "\"")
+	file, err := api.UploadFile(slack.FileUploadParameters{
+		Content:  lokiLine,
+		Channels: []string{SlackChannelId},
+		Filetype: "json",
+		Filename: "Log Entry",
+	})
+	if err != nil {
+		glog.Warningf("Error uploading file %v", err)
+		return "", err
+	}
+	ts := file.Shares.Public[SlackChannelId][0].Ts
+	glog.Infof("ts: %v", ts)
+	return ts, nil
+}
+
+func updateMsg(SlackChannelId string, SlackToken string, ts string, link string, labels []string) {
+	api := slack.New(SlackToken)
+	msg := slack.NewTextBlockObject(
+		"mrkdwn",
+		link+"\n"+strings.Join(labels, "\n"),
+		false,
+		true,
+	)
+	api.UpdateMessage(SlackChannelId, ts,
+		slack.MsgOptionBlocks(
+			slack.NewSectionBlock(msg, nil, nil),
+		),
+	)
+}
+
 // from https://github.com/slack-go/slack/blob/master/examples/messages/messages.go
 func postMsg(env string, lokiLink string, lokiLine string, Debug bool, SlackChannelId string, SlackToken string) error {
 	if len(lokiLine) > (1000 - 6) {
