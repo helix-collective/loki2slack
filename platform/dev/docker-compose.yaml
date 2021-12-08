@@ -1,22 +1,23 @@
 services:
 
   loki2slack:
-    image: ghcr.io/helix-collective
+    image: ghcr.io/helix-collective/loki2slack:latest
     volumes:
       - ./loki2slack.cfg:/config/loki2slack.cfg
     command: --logtostderr tail -c /config/loki2slack.cfg
 
   loki:
-    image: grafana/loki:2.2.1
+    image: grafana/loki:2.4.1
     ports:
       - "3100:3100"
       - "9096:9096"
+      - "9093:9093"
     volumes:
       - ./loki-config.yaml:/etc/loki/local-config.yaml
     command: -config.file=/etc/loki/local-config.yaml
 
   grafana:
-    image: grafana/grafana:8.0.4
+    image: grafana/grafana:8.3.1
     ports:
       - "3000:3000"
   
