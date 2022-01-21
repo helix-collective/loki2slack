@@ -1,0 +1,10 @@
+{
+    "Debug": false,
+    "GrafanaUrl": "https://grafana.prod-onederful.com",
+    "SlackToken": "xoxb-2240096826-2801986876402-vi9m8lcITKIYDY5rKIRhKDYv",
+    "SlackChannelId": "C02P8EYJA90",
+    "TemplateMsgFile": "platform/dev/template_sample_01/msg_template.tmpl",
+    "TemplateAttachmentFile": "platform/dev/template_sample_01/att_template.tmpl",
+    "SampleLabelsFile": "platform/dev/template_sample_01/labels",
+    "SampleLineFile": "platform/dev/template_sample_01/line.json"
+}

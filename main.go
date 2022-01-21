@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/helix-collective/loki2slack/internal/posttmplt"
 	"github.com/helix-collective/loki2slack/internal/tail"
 	"github.com/helix-collective/loki2slack/internal/types"
 	"github.com/jpillora/opts"
@@ -15,9 +16,17 @@ func main() {
 		EmbedGlobalFlagSet().
 		Complete().
 		AddCommand(opts.New(&versionCmd{}).Name("version")).
-		AddCommand(opts.New(tail.New(rflg)).Name("tail")).
+		AddCommand(opts.New(tail.New(rflg)).Name("tail").Summary(posttmplt.PostTemplateUsage)).
 		AddCommand(opts.New(tail.NewDecoder(rflg)).Name("urldecode")).
-		AddCommand(opts.New(tail.NewPost(rflg)).Name("post")).
+		AddCommand(
+			opts.New(&struct{}{}).Name("post").
+				AddCommand(
+					opts.New(tail.NewPostErrorFromSampleFile(rflg)).Name("error_from_sample_file"),
+				).
+				AddCommand(
+					opts.New(posttmplt.NewPostTemplate(rflg)).Name("template").Summary(posttmplt.PostTemplateUsage),
+				),
+		).
 		Parse()
 	op.RunFatal()
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/helix-collective/loki2slack/internal/slackclient"
 	"github.com/helix-collective/loki2slack/internal/types"
 )
 
@@ -21,7 +22,7 @@ type postOpts struct {
 	SampleFile string
 }
 
-func NewPost(rt *types.Root) interface{} {
+func NewPostErrorFromSampleFile(rt *types.Root) interface{} {
 	in := postOpts{
 		rt: rt,
 	}
@@ -31,7 +32,7 @@ func NewPost(rt *types.Root) interface{} {
 func (in *postOpts) Run() error {
 	types.Config(in.Cfg, in.DumpConfig, in)
 
-	err := joinChannel(in.SlackChannelId, in.SlackToken)
+	err := slackclient.JoinChannel(in.SlackChannelId, in.SlackToken)
 	if err == nil {
 		glog.Info("joinChannel ok")
 	} else {
@@ -51,12 +52,12 @@ func (in *postOpts) Run() error {
 	lokiLink := scanner.Text()
 	scanner.Scan()
 	lokiLine := scanner.Text()
-	ts, err := uploadFile(lokiLine, in.Debug, in.SlackChannelId, in.SlackToken)
+	ts, err := slackclient.UploadFile(lokiLine, in.Debug, in.SlackChannelId, in.SlackToken)
 	if err != nil {
 		glog.Warningf("upload error %v", err)
 		return nil
 	}
-	updateMsg(in.SlackChannelId, in.SlackToken, ts, lokiLink, []string{
+	slackclient.UpdateMsg(in.SlackChannelId, in.SlackToken, ts, lokiLink, []string{
 		"A: 1",
 		"B: 2",
 		"C: 3",
