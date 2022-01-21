@@ -2,12 +2,10 @@ package tail
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/url"
-	"strings"
 	"time"
 
+	"github.com/helix-collective/loki2slack/internal/posttmplt"
+	"github.com/helix-collective/loki2slack/internal/slackclient"
 	"github.com/helix-collective/loki2slack/internal/types"
 
 	"github.com/golang/glog"
@@ -26,9 +24,20 @@ type tailOpts struct {
 	GrafanaUrl     string
 	Query          string
 
+	TemplateMsgFile        string `help:"Filename of template used for slack message body. Required"`
+	TemplateAttachmentFile string `help:"Filename of template used for slack attachement content. Optional"`
+
 	SlackToken     string `opts:"env" help:"make sure scope chat:write is added (So far only working with user token)"`
 	SlackChannelId string `opts:"env" help:"copy channel from the bottom on 'open channel details' dialogue"`
 }
+
+func (in *tailOpts) GetDebug() bool                    { return in.Debug }
+func (in *tailOpts) GetSlackChannelId() string         { return in.SlackChannelId }
+func (in *tailOpts) GetSlackToken() string             { return in.SlackToken }
+func (in *tailOpts) GetGrafanaUrl() string             { return in.GrafanaUrl }
+func (in *tailOpts) GetLokiDataSource() string         { return in.LokiDataSource }
+func (in *tailOpts) GetTemplateMsgFile() string        { return in.TemplateMsgFile }
+func (in *tailOpts) GetTemplateAttachmentFile() string { return in.TemplateAttachmentFile }
 
 // New constructor for init
 func New(rt *types.Root) interface{} {
@@ -53,7 +62,7 @@ func (in *tailOpts) Run() error {
 
 func (in *tailOpts) tailLoki() error {
 	go func() {
-		err := joinChannel(in.SlackChannelId, in.SlackToken)
+		err := slackclient.JoinChannel(in.SlackChannelId, in.SlackToken)
 		if err == nil {
 			glog.Info("joinChannel ok")
 		} else {
@@ -90,68 +99,20 @@ func (in *tailOpts) tailLoki() error {
 		}
 		// fmt.Printf(">> %s\n", tresp.Stream.Labels)
 		plabels := tresp.Stream.Labels
+		// remove leading and tralling '{' '}'
 		plabels = plabels[1 : len(plabels)-1]
-		pl := strings.Split(plabels, ",")
-		labels := make([]string, 0)
-		env := ""
-		for _, p := range pl {
-			p = strings.Trim(p, " ")
-			if len(p) < 80 {
-				labels = append(labels, p)
-			}
-			if strings.HasPrefix(p, "env=\"") {
-				env = p
-				break
-			}
-		}
-		if env == "" {
-			glog.Warningf("didn't find env in %s", pl)
-			continue
-		}
-		// envA := strings.Split(env, "=")
-		env = strings.ReplaceAll(env, `"`, `\"`)
 		for _, entry := range tresp.Stream.Entries {
-			unixT := entry.Timestamp.UnixMilli()
-			left := fmt.Sprintf(`["%[2]d","%[2]d","%[3]s",{"expr":"{%[4]s}"}]`,
-				in.GrafanaUrl,
-				unixT,
-				in.LokiDataSource,
-				env,
+			msg, att, err := posttmplt.ProcessTemplate(
+				in,
+				[]byte(plabels),
+				[]byte(entry.Line),
+				entry.Timestamp.UnixMilli(),
 			)
-			lokiLink := fmt.Sprintf("%[1]s/explore?left=%[2]s", in.GrafanaUrl, url.QueryEscape(left))
-			line := entry.Line
-			lmap := make(map[string]interface{})
-			err = json.Unmarshal([]byte(line), &lmap)
 			if err != nil {
-				glog.Infof("entry.Line is not json %v", err)
-			} else {
-				ba, err := json.MarshalIndent(lmap, "", "  ")
-				if err != nil {
-					glog.Warningf("can't MarshalIndent %v", err)
-				} else {
-					line = string(ba)
-				}
-			}
-			ts, err := uploadFile(line, in.Debug, in.SlackChannelId, in.SlackToken)
-			if err != nil {
-				glog.Warningf("upload error %v", err)
+				glog.Warningf("ProcessTemplate error %v", err)
 				continue
 			}
-			updateMsg(
-				in.SlackChannelId,
-				in.SlackToken,
-				ts,
-				fmt.Sprintf("<%s|Grafana Link>", lokiLink),
-				labels,
-			)
-			// postMsg(
-			// 	envA[1],
-			// 	fmt.Sprintf("<%s|Grafana Link>", lokiLink),
-			// 	line,
-			// 	in.Debug,
-			// 	in.SlackChannelId,
-			// 	in.SlackToken,
-			// )
+			posttmplt.Post(in, msg, att)
 		}
 	}
 	// http://localhost:3001/explore?left=["1638359982286","1638360882286","Loki",{"expr":"{env=\"devel\"}"}]&orgId=1

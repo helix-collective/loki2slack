@@ -1,0 +1,5 @@
+body="http request failed"
+code_version="release-0.86.1"
+component="mobileapi/server"
+ec2_instance_id="i-1234567890"
+env="pvt1"

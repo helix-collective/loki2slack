@@ -1,0 +1,9 @@
+{
+    "threadId": "qtp641030345-1031810318",
+    "stacktrace": "java.lang.RuntimeException: Cannot take a connection\n\t note \\n and \\t will get expanded .. 47 more\n",
+    "level": "error",
+    "logger": "Snuffles",
+    "fingerprint": "1234567890",
+    "body": "http request failed",
+    "url": "http://mobileapi...."
+}
