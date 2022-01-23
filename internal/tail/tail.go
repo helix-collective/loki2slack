@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/helix-collective/loki2slack/internal/posttmplt"
-	"github.com/helix-collective/loki2slack/internal/slackclient"
 	"github.com/helix-collective/loki2slack/internal/types"
+	"github.com/slack-go/slack"
 
 	"github.com/golang/glog"
 	"github.com/grafana/loki/pkg/logproto"
@@ -65,7 +65,8 @@ func (in *tailOpts) Run() error {
 
 func (in *tailOpts) tailLoki(tmpl *template.Template) error {
 	go func() {
-		err := slackclient.JoinChannel(in.SlackChannelId, in.SlackToken)
+		api := slack.New(in.SlackToken)
+		_, _, _, err := api.JoinConversation(in.SlackChannelId)
 		if err == nil {
 			glog.Info("joinChannel ok")
 		} else {

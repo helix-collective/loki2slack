@@ -21,9 +21,6 @@ func main() {
 		AddCommand(
 			opts.New(&struct{}{}).Name("post").
 				AddCommand(
-					opts.New(tail.NewPostErrorFromSampleFile(rflg)).Name("error_from_sample_file"),
-				).
-				AddCommand(
 					opts.New(posttmplt.NewPostTemplate(rflg)).Name("template").Summary(posttmplt.PostTemplateUsage),
 				),
 		).

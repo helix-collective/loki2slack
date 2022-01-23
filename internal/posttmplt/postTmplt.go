@@ -13,7 +13,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/slack-go/slack"
 
-	"github.com/helix-collective/loki2slack/internal/slackclient"
 	"github.com/helix-collective/loki2slack/internal/types"
 )
 
@@ -129,17 +128,15 @@ func (in *postTmplOpts) Run() error {
 		}
 		return nil
 	}
+	api := slack.New(in.SlackToken)
+	_, _, _, err = api.JoinConversation(in.SlackChannelId)
+	if err != nil {
+		return err
+	}
 	return Post(in, msg, att)
 }
 
 func Post(in PostTempParams, msg *bytes.Buffer, att *bytes.Buffer) error {
-	err := slackclient.JoinChannel(in.GetSlackChannelId(), in.GetSlackToken())
-	if err == nil {
-		glog.Info("joinChannel ok")
-	} else {
-		glog.Warningf("joinChannel error %v", err)
-	}
-
 	msgBlk := slack.NewTextBlockObject(
 		"mrkdwn",
 		msg.String(),
@@ -167,7 +164,7 @@ func Post(in PostTempParams, msg *bytes.Buffer, att *bytes.Buffer) error {
 		return err
 	}
 	// no attachement only a message
-	_, _, err = api.PostMessage(
+	_, _, err := api.PostMessage(
 		in.GetSlackChannelId(),
 		slack.MsgOptionBlocks(
 			slack.NewSectionBlock(msgBlk, nil, nil),
