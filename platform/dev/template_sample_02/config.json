@@ -1,0 +1,7 @@
+{
+    "GrafanaUrl": "http://localhost:3000",
+    "SlackToken": "",
+    "SlackChannelId": "",
+    "SampleLabelsFile": "platform/dev/template_sample_02/labels",
+    "SampleLineFile": "platform/dev/template_sample_02/line.txt"
+}

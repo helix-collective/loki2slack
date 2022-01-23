@@ -3,9 +3,9 @@ services:
   loki2slack:
     image: ghcr.io/helix-collective
     volumes:
-      - ./cfg.json:/config/loki2slack.cfg
-      - ./template_sample_01/msg_template.tmpl:/config/msg_template.tmpl
-      - ./template_sample_01/att_template.tmpl:/config/att_template.tmpl
+      - ./loki2slack.cfg:/config/loki2slack.cfg
+      # - ./cfg.json:/config/loki2slack.cfg
+      - ./template_sample_02/template_with_attachment.tmpl:/config/template.tmpl
     command: --logtostderr tail -c /config/loki2slack.cfg
 
   loki:

@@ -3,8 +3,7 @@
     "GrafanaUrl": "http://localhost:3000",
     "SlackToken": "",
     "SlackChannelId": "",
-    "TemplateMsgFile": "platform/dev/template_sample_01/msg_template.tmpl",
-    "TemplateAttachmentFile": "platform/dev/template_sample_01/att_template.tmpl",
+
     "SampleLabelsFile": "platform/dev/template_sample_01/labels",
     "SampleLineFile": "platform/dev/template_sample_01/line.json"
 }

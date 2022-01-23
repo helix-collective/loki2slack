@@ -2,6 +2,8 @@ package tail
 
 import (
 	"context"
+	"strings"
+	"text/template"
 	"time"
 
 	"github.com/helix-collective/loki2slack/internal/posttmplt"
@@ -24,20 +26,17 @@ type tailOpts struct {
 	GrafanaUrl     string
 	Query          string
 
-	TemplateMsgFile        string `help:"Filename of template used for slack message body. Required"`
-	TemplateAttachmentFile string `help:"Filename of template used for slack attachement content. Optional"`
+	TemplateFile string `help:"Filename of template. Expected are templates name 'message' (required), 'json_attachment' & 'txt_attachment'."`
 
 	SlackToken     string `opts:"env" help:"make sure scope chat:write is added (So far only working with user token)"`
 	SlackChannelId string `opts:"env" help:"copy channel from the bottom on 'open channel details' dialogue"`
 }
 
-func (in *tailOpts) GetDebug() bool                    { return in.Debug }
-func (in *tailOpts) GetSlackChannelId() string         { return in.SlackChannelId }
-func (in *tailOpts) GetSlackToken() string             { return in.SlackToken }
-func (in *tailOpts) GetGrafanaUrl() string             { return in.GrafanaUrl }
-func (in *tailOpts) GetLokiDataSource() string         { return in.LokiDataSource }
-func (in *tailOpts) GetTemplateMsgFile() string        { return in.TemplateMsgFile }
-func (in *tailOpts) GetTemplateAttachmentFile() string { return in.TemplateAttachmentFile }
+func (in *tailOpts) GetDebug() bool            { return in.Debug }
+func (in *tailOpts) GetSlackChannelId() string { return in.SlackChannelId }
+func (in *tailOpts) GetSlackToken() string     { return in.SlackToken }
+func (in *tailOpts) GetGrafanaUrl() string     { return in.GrafanaUrl }
+func (in *tailOpts) GetLokiDataSource() string { return in.LokiDataSource }
 
 // New constructor for init
 func New(rt *types.Root) interface{} {
@@ -53,14 +52,18 @@ func New(rt *types.Root) interface{} {
 
 func (in *tailOpts) Run() error {
 	types.Config(in.Cfg, in.DumpConfig, in)
+	tmpl, err := posttmplt.ParseTemplate(in.TemplateFile)
+	if err != nil {
+		glog.Fatalf("error parsing template '%s' %v", in.TemplateFile, err)
+	}
 	for {
-		in.tailLoki()
+		in.tailLoki(tmpl)
 		glog.Info("waiting and reconnecting")
 		<-time.After(time.Second * 5)
 	}
 }
 
-func (in *tailOpts) tailLoki() error {
+func (in *tailOpts) tailLoki(tmpl *template.Template) error {
 	go func() {
 		err := slackclient.JoinChannel(in.SlackChannelId, in.SlackToken)
 		if err == nil {
@@ -101,10 +104,26 @@ func (in *tailOpts) tailLoki() error {
 		plabels := tresp.Stream.Labels
 		// remove leading and tralling '{' '}'
 		plabels = plabels[1 : len(plabels)-1]
+
+		pl := strings.Split(plabels, ",")
+		labelData := make(map[string]interface{})
+
+		for _, p := range pl {
+			idx := strings.Index(p, "=")
+			val := p[idx+2:]
+			if val[len(val)-1] == '"' {
+				val = val[:len(val)-1]
+			}
+			if len(val) < 80 {
+				labelData[p[:idx]] = val
+			}
+		}
+
 		for _, entry := range tresp.Stream.Entries {
 			msg, att, err := posttmplt.ProcessTemplate(
 				in,
-				[]byte(plabels),
+				tmpl,
+				labelData,
 				[]byte(entry.Line),
 				entry.Timestamp.UnixMilli(),
 			)
