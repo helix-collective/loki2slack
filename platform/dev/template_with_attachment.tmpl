@@ -1,6 +1,6 @@
 {{define "message" -}}
 template with attachment
-{{.Query}}
+{{.Query | escapequotes}}
 {{.GrafanaUrl}}
 {{.LokiDataSource}}
 {{.EntryTimestamp}}

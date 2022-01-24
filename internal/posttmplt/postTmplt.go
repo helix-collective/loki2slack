@@ -33,6 +33,7 @@ type postTmplOpts struct {
 	DryRun         bool
 	LokiDataSource string
 	GrafanaUrl     string
+	Query          string
 
 	SlackToken     string `opts:"env" help:"make sure scope chat:write is added (So far only working with user token)"`
 	SlackChannelId string `opts:"env" help:"copy channel from the bottom on 'open channel details' dialogue"`
@@ -44,7 +45,7 @@ type postTmplOpts struct {
 }
 
 func (in *postTmplOpts) GetDebug() bool            { return in.Debug }
-func (in *postTmplOpts) GetQuery() string          { return "<dummy query>" }
+func (in *postTmplOpts) GetQuery() string          { return in.Query }
 func (in *postTmplOpts) GetSlackChannelId() string { return in.SlackChannelId }
 func (in *postTmplOpts) GetSlackToken() string     { return in.SlackToken }
 func (in *postTmplOpts) GetGrafanaUrl() string     { return in.GrafanaUrl }
@@ -52,6 +53,7 @@ func (in *postTmplOpts) GetLokiDataSource() string { return in.LokiDataSource }
 
 const PostTemplateUsage = `Data available to the template engine.
 struct {
+	Query          string
 	GrafanaUrl     string
 	EntryTimestamp int64
 	LokiDataSource string
@@ -60,6 +62,10 @@ struct {
 }
 Labels are the log labels from Loki.
 If the Line is json formatted then its type can be assumed as map[string]interface{}.
+
+Extra function (in addition to https://pkg.go.dev/text/template#hdr-Functions)
+escapequotes
+    replaces all " with \"
 
 The default template (below) is used if not template file is provided.
 If attachment templates are provided a slack message is created with upload file (todo wording)
@@ -70,13 +76,19 @@ func NewPostTemplate(rt *types.Root) interface{} {
 		rt:             rt,
 		LokiDataSource: "Loki",
 		GrafanaUrl:     "http://localhost:3000",
+		Query:          `{env="dev"}`,
 	}
 	return &in
 }
 
 func ParseTemplate(filename string) (*template.Template, error) {
+	tmpl0 := template.New("").Funcs(
+		template.FuncMap{
+			"escapequotes": quoteEscaper,
+		},
+	)
 	if filename != "" {
-		tmpl, err := template.ParseFiles(filename)
+		tmpl, err := tmpl0.ParseFiles(filename)
 		if err != nil {
 			glog.Warningf("msg template error %v %s", err, filename)
 			return nil, err
@@ -86,7 +98,7 @@ func ParseTemplate(filename string) (*template.Template, error) {
 		}
 		return tmpl, nil
 	}
-	tmpl, err := template.New("").Parse(DefaultTemplate)
+	tmpl, err := tmpl0.Parse(DefaultTemplate)
 	if err != nil {
 		glog.Fatalf("error in default template %v", err)
 	}

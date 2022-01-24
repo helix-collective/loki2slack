@@ -2,8 +2,9 @@ package posttmplt
 
 const DefaultTemplate = `
 {{define "message" -}}
-{{- $left := printf ` + "`" + `["%d","%d","%s",{"expr":"{env=\"%s\"}"}]` + "`" + `
-        .EntryTimestamp .EntryTimestamp .LokiDataSource .Labels.env
+{{- $expr := .Query | escapequotes -}}
+{{- $left := printf ` + "`" + `["%d","%d","%s",{"expr":"%s"}]` + "`" + `
+        .EntryTimestamp .EntryTimestamp .LokiDataSource $expr
     | urlquery
 -}}
 {{- $lokiLink := printf "%[1]s/explore?left=%[2]s" .GrafanaUrl $left -}}

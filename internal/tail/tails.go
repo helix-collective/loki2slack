@@ -11,7 +11,7 @@ import (
 
 type tailsOpts struct {
 	rt         *types.Root
-	Cfg        string `help:"Config file in json format (NOTE file entries take precedence over command-line flags & env)" json:"-"`
+	Cfg        string `help:"Config file in json format" json:"-"`
 	DumpConfig bool   `help:"Dump the config to stdout and exits" json:"-"`
 	Debug      bool   `opts:"-"`
 
