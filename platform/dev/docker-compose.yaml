@@ -8,6 +8,14 @@ services:
       - ./template_sample_02/template_with_attachment.tmpl:/config/template.tmpl
     command: --logtostderr tail -c /config/loki2slack.cfg
 
+  tails:
+    image: ghcr.io/helix-collective
+    volumes:
+      - ./tails.cfg:/config/tails.cfg
+      - ./template_with_attachment.tmpl:/config/template_with_attachment.tmpl
+      - ./template_without_attachment.tmpl:/config/template_without_attachment.tmpl
+    command: --logtostderr tails -c /config/tails.cfg
+
   loki:
     image: grafana/loki:2.2.1
     ports:

@@ -18,6 +18,7 @@ import (
 
 type PostTempParams interface {
 	GetDebug() bool
+	GetQuery() string
 	GetSlackChannelId() string
 	GetSlackToken() string
 	GetGrafanaUrl() string
@@ -43,6 +44,7 @@ type postTmplOpts struct {
 }
 
 func (in *postTmplOpts) GetDebug() bool            { return in.Debug }
+func (in *postTmplOpts) GetQuery() string          { return "<dummy query>" }
 func (in *postTmplOpts) GetSlackChannelId() string { return in.SlackChannelId }
 func (in *postTmplOpts) GetSlackToken() string     { return in.SlackToken }
 func (in *postTmplOpts) GetGrafanaUrl() string     { return in.GrafanaUrl }
@@ -133,20 +135,24 @@ func (in *postTmplOpts) Run() error {
 	if err != nil {
 		return err
 	}
-	return Post(in, msg, att)
+	if att != nil {
+		attStr := att.String()
+		return Post(in, msg.String(), &attStr)
+	}
+	return Post(in, msg.String(), nil)
 }
 
-func Post(in PostTempParams, msg *bytes.Buffer, att *bytes.Buffer) error {
+func Post(in PostTempParams, msg string, att *string) error {
 	msgBlk := slack.NewTextBlockObject(
 		"mrkdwn",
-		msg.String(),
+		msg,
 		false,
 		true,
 	)
 	api := slack.New(in.GetSlackToken())
 	if att != nil {
 		file, err := api.UploadFile(slack.FileUploadParameters{
-			Content:  att.String(),
+			Content:  *att,
 			Channels: []string{in.GetSlackChannelId()},
 			Filetype: "json",
 			Filename: "Log Entry",
@@ -161,7 +167,11 @@ func Post(in PostTempParams, msg *bytes.Buffer, att *bytes.Buffer) error {
 				slack.NewSectionBlock(msgBlk, nil, nil),
 			),
 		)
-		return err
+		if err != nil {
+			glog.Warningf("Error updating message %v", err)
+			return err
+		}
+		return nil
 	}
 	// no attachement only a message
 	_, _, err := api.PostMessage(
@@ -170,7 +180,11 @@ func Post(in PostTempParams, msg *bytes.Buffer, att *bytes.Buffer) error {
 			slack.NewSectionBlock(msgBlk, nil, nil),
 		),
 	)
-	return err
+	if err != nil {
+		glog.Warningf("Error posting message %v", err)
+		return err
+	}
+	return nil
 }
 
 func ProcessTemplate(
@@ -182,12 +196,14 @@ func ProcessTemplate(
 ) (*bytes.Buffer, *bytes.Buffer, error) {
 
 	data := struct {
+		Query          string
 		GrafanaUrl     string
 		EntryTimestamp int64
 		LokiDataSource string
 		Labels         map[string]interface{}
 		Line           interface{}
 	}{
+		Query:          in.GetQuery(),
 		GrafanaUrl:     in.GetGrafanaUrl(),
 		EntryTimestamp: entryTimestamp,
 		LokiDataSource: in.GetLokiDataSource(),

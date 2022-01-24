@@ -2,6 +2,7 @@ package tail
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"text/template"
 	"time"
@@ -33,6 +34,7 @@ type tailOpts struct {
 }
 
 func (in *tailOpts) GetDebug() bool            { return in.Debug }
+func (in *tailOpts) GetQuery() string          { return in.Query }
 func (in *tailOpts) GetSlackChannelId() string { return in.SlackChannelId }
 func (in *tailOpts) GetSlackToken() string     { return in.SlackToken }
 func (in *tailOpts) GetGrafanaUrl() string     { return in.GrafanaUrl }
@@ -132,7 +134,19 @@ func (in *tailOpts) tailLoki(tmpl *template.Template) error {
 				glog.Warningf("ProcessTemplate error %v", err)
 				continue
 			}
-			posttmplt.Post(in, msg, att)
+			msgStr := msg.String()
+			if in.Debug {
+				fmt.Printf("``` message\n%s\n```\n", msgStr)
+			}
+			if att != nil {
+				attStr := att.String()
+				if in.Debug {
+					fmt.Printf("``` attachment\n%s\n```\n", attStr)
+				}
+				posttmplt.Post(in, msgStr, &attStr)
+			} else {
+				posttmplt.Post(in, msgStr, nil)
+			}
 		}
 	}
 	// http://localhost:3001/explore?left=["1638359982286","1638360882286","Loki",{"expr":"{env=\"devel\"}"}]&orgId=1
