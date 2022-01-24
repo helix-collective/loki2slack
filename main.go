@@ -17,7 +17,7 @@ func main() {
 		Complete().
 		AddCommand(opts.New(&versionCmd{}).Name("version")).
 		AddCommand(opts.New(tail.New(rflg)).Name("tail").Summary(posttmplt.PostTemplateUsage)).
-		AddCommand(opts.New(tail.NewTails(rflg)).Name("tails")).
+		AddCommand(opts.New(tail.NewTails(rflg)).Name("tails").Summary(tail.TailsUsage)).
 		AddCommand(opts.New(tail.NewDecoder(rflg)).Name("urldecode")).
 		AddCommand(
 			opts.New(&struct{}{}).Name("post").

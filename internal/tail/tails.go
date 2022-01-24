@@ -2,6 +2,7 @@ package tail
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -23,6 +24,7 @@ type tailsOpts struct {
 
 type tailSpec struct {
 	Query          string
+	Templates      []string
 	TemplateFile   string `help:"Filename of template. Expected are templates name 'message' (required), 'json_attachment' & 'txt_attachment'."`
 	SlackToken     string `opts:"env" help:"make sure scope chat:write is added (So far only working with user token)"`
 	SlackChannelId string `opts:"env" help:"copy channel from the bottom on 'open channel details' dialogue"`
@@ -36,15 +38,20 @@ func NewTails(rt *types.Root) interface{} {
 		GrafanaUrl:     "http://localhost:3000",
 		Tail: []tailSpec{
 			{
-				Query: `{env="dev1"}`,
+				Query:     `{env="dev1"}`,
+				Templates: []string{},
 			},
 			{
-				Query: `{env="dev2"}`,
+				Query:     `{env="dev2"}`,
+				Templates: []string{},
 			},
 		},
 	}
 	return &in
 }
+
+const TailsUsage = `Tails loki multiple times, one for each tail entry in the config.
+See 'tail --help' and 'tails --dump-config' for more information.`
 
 func (in *tailsOpts) Run() error {
 	types.Config(in.Cfg, in.DumpConfig, in)
@@ -64,7 +71,18 @@ func (in *tailsOpts) Run() error {
 				SlackToken:     t1.SlackToken,
 				SlackChannelId: t1.SlackChannelId,
 			}
-			tmpl, err := posttmplt.ParseTemplate(t1.TemplateFile)
+			tmplMap := make(map[string]string)
+			for _, tmplStr := range t1.Templates {
+				idx := strings.Index(tmplStr, ":")
+				if idx == -1 {
+					glog.Fatalf("expected ':' in template '%s'", tmplStr)
+				}
+				tmplMap[tmplStr[:idx]] = tmplStr[idx+1:]
+				if in.Debug {
+					glog.Infof("template '%s' '%s'", tmplStr[:idx], tmplStr[idx+1:])
+				}
+			}
+			tmpl, err := posttmplt.ParseTemplate(t1.TemplateFile, tmplMap)
 			if err != nil {
 				glog.Errorf("error parsing template tail %d '%s' %v", i1, t2.TemplateFile, err)
 				return

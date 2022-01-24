@@ -27,7 +27,8 @@ type tailOpts struct {
 	GrafanaUrl     string
 	Query          string
 
-	TemplateFile string `help:"Filename of template. Expected are templates name 'message' (required), 'json_attachment' & 'txt_attachment'."`
+	Templates    []string `help:"Templates which override the file or defaults templates. In the form '<name>:<template>' eg 'message:{{.Query}}'. To remove attachment templates use --template 'json_attachment:-' --template 'txt_attachment:-'"`
+	TemplateFile string   `help:"Filename of template. Expected are templates name 'message' (required), 'json_attachment' & 'txt_attachment'."`
 
 	SlackToken     string `opts:"env" help:"make sure scope chat:write is added (So far only working with user token)"`
 	SlackChannelId string `opts:"env" help:"copy channel from the bottom on 'open channel details' dialogue"`
@@ -48,13 +49,27 @@ func New(rt *types.Root) interface{} {
 		LokiDataSource: "Loki",
 		GrafanaUrl:     "http://localhost:3000",
 		Query:          `{env="dev"}`,
+		Templates:      []string{},
 	}
 	return &in
 }
 
 func (in *tailOpts) Run() error {
 	types.Config(in.Cfg, in.DumpConfig, in)
-	tmpl, err := posttmplt.ParseTemplate(in.TemplateFile)
+
+	tmplMap := make(map[string]string)
+	for _, tmplStr := range in.Templates {
+		idx := strings.Index(tmplStr, ":")
+		if idx == -1 {
+			glog.Fatalf("expected ':' in template '%s'", tmplStr)
+		}
+		tmplMap[tmplStr[:idx]] = tmplStr[idx+1:]
+		if in.Debug {
+			glog.Infof("template '%s' '%s'", tmplStr[:idx], tmplStr[idx+1:])
+		}
+	}
+
+	tmpl, err := posttmplt.ParseTemplate(in.TemplateFile, tmplMap)
 	if err != nil {
 		glog.Fatalf("error parsing template '%s' %v", in.TemplateFile, err)
 	}

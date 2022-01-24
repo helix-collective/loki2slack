@@ -35,6 +35,8 @@ type postTmplOpts struct {
 	GrafanaUrl     string
 	Query          string
 
+	Templates []string `help:"Templates which override the file or defaults templates. In the form '<name>:<template>' eg 'message:{{.Query}}'. To remove attachment templates use --template 'json_attachment:-' --template 'txt_attachment:-'"`
+
 	SlackToken     string `opts:"env" help:"make sure scope chat:write is added (So far only working with user token)"`
 	SlackChannelId string `opts:"env" help:"copy channel from the bottom on 'open channel details' dialogue"`
 
@@ -77,45 +79,102 @@ func NewPostTemplate(rt *types.Root) interface{} {
 		LokiDataSource: "Loki",
 		GrafanaUrl:     "http://localhost:3000",
 		Query:          `{env="dev"}`,
+		Templates:      []string{},
 	}
 	return &in
 }
 
-func ParseTemplate(filename string) (*template.Template, error) {
-	tmpl0 := template.New("").Funcs(
-		template.FuncMap{
-			"escapequotes": quoteEscaper,
-		},
-	)
+var template_FuncMap = template.FuncMap{
+	"escapequotes": quoteEscaper,
+}
+
+func ParseTemplate(
+	filename string,
+	tmplMap map[string]string,
+) (tmpl *template.Template, err error) {
+	// tmpl0 := template.New("").Funcs(
+	// 	template.FuncMap{
+	// 		"escapequotes": quoteEscaper,
+	// 	},
+	// )
 	if filename != "" {
-		tmpl, err := tmpl0.ParseFiles(filename)
+		tmpl, err = template.New("").Funcs(template_FuncMap).ParseFiles(filename)
 		if err != nil {
 			glog.Warningf("msg template error %v %s", err, filename)
 			return nil, err
 		}
-		if tmpl.Lookup("message") == nil {
-			return nil, fmt.Errorf("requires 'message' template")
+	} else {
+		tmpl, err = template.New("").Funcs(template_FuncMap).Parse(DefaultTemplate)
+		if err != nil {
+			glog.Fatalf("error in default template %v", err)
 		}
-		return tmpl, nil
 	}
-	tmpl, err := tmpl0.Parse(DefaultTemplate)
-	if err != nil {
-		glog.Fatalf("error in default template %v", err)
+	for name, str := range tmplMap {
+		glog.Infof("name:template  '%s' : '%s'", name, str)
+		if str == "-" {
+			glog.Infof("skipping %s", name)
+			tp0 := template.New("").Funcs(template_FuncMap)
+			for _, tp1 := range tmpl.Templates() {
+				if tp1.Name() != name {
+					glog.Infof("keeping  '%s'", tp1.Name())
+					tp0, _ = tp0.AddParseTree(tp1.Name(), tp1.Tree)
+				}
+			}
+			tmpl = tp0
+			continue
+		}
+		tp, err0 := template.New("").Funcs(template_FuncMap).Parse(str)
+		if err0 != nil {
+			glog.Errorf("error in msg template %v", err0)
+			return nil, err0
+		}
+		tmpl, _ = tmpl.AddParseTree(name, tp.Tree)
+	}
+	if tmpl.Lookup("message") == nil {
+		return nil, fmt.Errorf("requires 'message' template")
 	}
 	return tmpl, nil
 }
 
+const (
+	defauleLabelsTxt = `body="http request failed"
+code_version="release-0.86.1"
+component="mobileapi/server"
+ec2_instance_id="i-1234567890"
+env="pvt1"`
+
+	defaultLineTxt = `{
+    "threadId": "qtp641030345-1031810318",
+    "stacktrace": "java.lang.RuntimeException: Cannot take a connection\n\t note \\n and \\t will get expanded .. 47 more\n",
+    "level": "error",
+    "logger": "Snuffles",
+    "fingerprint": "1234567890",
+    "body": "http request failed",
+    "url": "http://mobileapi...."
+}`
+)
+
 func (in *postTmplOpts) Run() error {
 	types.Config(in.Cfg, in.DumpConfig, in)
 
-	labelsTxt, err := ioutil.ReadFile(in.SampleLabelsFile)
-	if err != nil {
-		glog.Fatalf("error opening file %s %v", in.SampleLabelsFile, err)
+	var labelsTxt []byte
+	var err error
+	if in.SampleLabelsFile != "" {
+		labelsTxt, err = ioutil.ReadFile(in.SampleLabelsFile)
+		if err != nil {
+			glog.Fatalf("error opening file %s %v", in.SampleLabelsFile, err)
+		}
+	} else {
+		labelsTxt = []byte(defauleLabelsTxt)
 	}
-
-	lineTxt, err := ioutil.ReadFile(in.SampleLineFile)
-	if err != nil {
-		glog.Fatalf("error opening file %s %v", in.SampleLineFile, err)
+	var lineTxt []byte
+	if in.SampleLineFile != "" {
+		lineTxt, err = ioutil.ReadFile(in.SampleLineFile)
+		if err != nil {
+			glog.Fatalf("error opening file %s %v", in.SampleLineFile, err)
+		}
+	} else {
+		lineTxt = []byte(defaultLineTxt)
 	}
 
 	labelData := make(map[string]interface{})
@@ -126,8 +185,20 @@ func (in *postTmplOpts) Run() error {
 		labelData[label[:idx]] = label[idx+2 : len(label)-1]
 	}
 
+	tmplMap := make(map[string]string)
+	for _, tmplStr := range in.Templates {
+		idx := strings.Index(tmplStr, ":")
+		if idx == -1 {
+			glog.Fatalf("expected ':' in template '%s'", tmplStr)
+		}
+		tmplMap[tmplStr[:idx]] = tmplStr[idx+1:]
+		if in.Debug {
+			glog.Infof("template '%s' '%s'", tmplStr[:idx], tmplStr[idx+1:])
+		}
+	}
+
 	now := time.Now().UnixMilli()
-	tmpl, err := ParseTemplate(in.TemplateFile)
+	tmpl, err := ParseTemplate(in.TemplateFile, tmplMap)
 	if err != nil {
 		glog.Fatalf("error parsing template '%s' %v", in.TemplateFile, err)
 	}
