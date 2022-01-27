@@ -1,4 +1,5 @@
 cfg.json
+local_cfg.json
 loki2slack
 
 dist/

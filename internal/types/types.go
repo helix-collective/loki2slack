@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"os"
-
-	"github.com/golang/glog"
 )
 
 // Root struct for commands
@@ -24,8 +22,7 @@ func Config(filename string, dump bool, in interface{}) {
 		//
 		// won't fire if dump is used as os.Exit terminates program
 		defer func() {
-			err := fd.Close()
-			glog.Infof("close file %v", err)
+			fd.Close()
 		}()
 		if err != nil {
 			log.Fatalf("error opening file %s %v", filename, err)

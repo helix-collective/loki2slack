@@ -1,0 +1,18 @@
+{{define "message" -}}
+{{.GrafanaUrl}}
+{{.LokiDataSource}}
+{{.EntryTimestamp}}
+{{- range $key, $value := .Labels }}
+{{ $key }} = {{ $value }}
+{{- end }}
+{{- end}}
+
+{{define "json_attachment" -}}
+{{- range $key, $value := .Line -}}
+{{ $key }}: {{ $value }}
+{{end -}}
+{{- end}}
+
+{{define "txt_attachment" -}}
+{{.Line}}
+{{- end}}
