@@ -128,6 +128,12 @@ func (in *tailOpts) tailLoki(tmpl *template.Template) error {
 
 		for _, p := range pl {
 			idx := strings.Index(p, "=")
+			if idx == -1 {
+				if in.Debug {
+					glog.Infof("label without an '=' %s", p)
+				}
+				continue
+			}
 			val := p[idx+2:]
 			if val[len(val)-1] == '"' {
 				val = val[:len(val)-1]
